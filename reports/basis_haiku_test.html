@@ -1,0 +1,164 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>basis 시험</title><style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d1f;--muted:#6b6b70;--line:#e3e3e0;--accent:#00798c;--soft:#eef6f7;--warn:#fff6e5}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161618;--card:#1f1f22;--ink:#ececec;--muted:#a0a0a8;--line:#333338;--accent:#4fb3c4;--soft:#1d2a2d;--warn:#2d2718}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 80px}
+header h1{margin:0 0 4px;font-size:26px} header p{margin:0;color:var(--muted)}
+nav{position:sticky;top:0;background:var(--bg);padding:10px 0;margin:16px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 14px;z-index:5}
+nav a{color:var(--accent);text-decoration:none;font-size:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:18px 0}
+h2{margin:0 0 12px;font-size:20px} h3{margin:26px 0 8px;font-size:17px} h4{margin:18px 0 6px}
+.tw{overflow-x:auto;margin:10px 0} table{border-collapse:collapse;font-size:13px;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{background:var(--soft);white-space:nowrap}
+img{max-width:100%;height:auto;display:block;margin:10px 0;border-radius:6px;background:#fff}
+.muted{color:var(--muted);font-size:13px} .why{background:var(--soft);padding:8px 12px;border-radius:6px;font-size:14px}
+.callout{background:var(--warn);padding:10px 14px;border-radius:6px} code{font-size:12.5px;background:var(--soft);padding:1px 4px;border-radius:3px}
+.ok{color:#2e7d32;font-weight:bold} .mid{color:#b7791f;font-weight:bold} .bad{color:#c62828;font-weight:bold}
+</style></head><body><div class="wrap">
+<header><h1>basis 문장 시험 (학습용 최근 12개월 10건)</h1>
+<p>모델 claude-haiku-5-5 (effort low) · Haiku 통과 9/10 · 비용 $0.00118 · 생성 2026-10-13 · <code>python src/basis.py</code></p></header>
+<section><h2>규칙</h2><ul>
+<li>템플릿 문장(숫자는 모델·데이터 값) → Haiku가 표현만 다듬음 → 두 문장의 숫자 묶음이 같으면 Haiku 문장, 다르면 템플릿</li>
+<li>API 키 없음·호출 실패·응답 이상도 템플릿으로 계속 (status는 ok 유지)</li>
+<li>신뢰도 이유 표시 기준 (AI가 정함): 주변 거래 14건 이하 → "주변 거래 적음", 세 모델 엇갈림 8.5% 이상 → "모델 간 예측 차이 큼"</li>
+<li>시험 대상: 권역별 강남 3·강서 3·관악 2건 + 주변 거래 0건 1건 + 공시가격 없음 1건 (난수 42). 추정 = 교차검증 예측(CatBoost)</li></ul></section>
+<section><h2>결과</h2><div class="tw"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>id</th>
+      <th>구</th>
+      <th>실제(억)</th>
+      <th>추정(억)</th>
+      <th>confidence</th>
+      <th>템플릿 문장</th>
+      <th>최종 basis</th>
+      <th>출처</th>
+      <th>템플릿 사유</th>
+      <th>토큰(입력/출력)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6785</td>
+      <td>강남구</td>
+      <td>4.40</td>
+      <td>3.79</td>
+      <td>0.52</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 121건의 ㎡당 중앙값 1,313만원 기준(3.75억) 대비 +1%, 공시가격(2.19억)의 1.73배. 준공 6년·3층·역 320m. 신뢰도 높음.</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 거래된 121건의 ㎡당 중앙값 1,313만원을 기준으로 잡으면 3.75억원이며, 이는 기준 대비 +1%입니다. 공시가격 2.19억원의 1.73배에 해당하고, 준공 6년, 3층, 역에서 320m 거리입니다. 신뢰도는 높음입니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>352/152</td>
+    </tr>
+    <tr>
+      <td>6187</td>
+      <td>강남구</td>
+      <td>5.21</td>
+      <td>5.87</td>
+      <td>0.51</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 76건의 ㎡당 중앙값 1,407만원 기준(5.31억) 대비 +11%, 공시가격(2.09억)의 2.80배. 준공 35년·2층·역 1430m. 신뢰도 높음.</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 거래된 76건의 ㎡당 중앙값 1,407만원을 기준으로 하면 시세는 5.31억원이며, 이는 이 빌라의 공시가격 2.09억원의 2.80배입니다. 기준 대비 +11% 차이가 있고, 준공 35년, 2층, 역까지 1430m입니다. 신뢰도는 높음입니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>353/160</td>
+    </tr>
+    <tr>
+      <td>6914</td>
+      <td>강남구</td>
+      <td>4.00</td>
+      <td>3.76</td>
+      <td>0.41</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 86건의 ㎡당 중앙값 1,536만원 기준(4.42억) 대비 -15%, 공시가격(1.34억)의 2.81배. 준공 29년·4층·역 770m. 신뢰도 낮음(모델 간 예측 차이 큼).</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 이뤄진 거래 86건의 ㎡당 중앙값은 1,536만원이며, 이를 기준으로 한 시세 4.42억원은 이 빌라 공시가격 1.34억원의 2.81배입니다. 이 시세는 중앙값 대비 -15%를 반영했고, 준공 29년·4층·역까지 770m 조건도 고려했습니다. 다만 모델 간 예측 차이가 커서 신뢰도는 낮습니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>367/193</td>
+    </tr>
+    <tr>
+      <td>3319</td>
+      <td>강서구</td>
+      <td>3.90</td>
+      <td>2.95</td>
+      <td>0.45</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 170건의 ㎡당 중앙값 692만원 기준(2.99억) 대비 -1%, 공시가격(1.61억)의 1.83배. 준공 13년·3층·역 490m. 신뢰도 보통.</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 거래된 빌라 170건의 ㎡당 중앙값은 692만원이며, 이를 기준으로 한 시세는 2.99억원입니다. 이는 기준 대비 -1% 수준이고, 공시가격 1.61억원의 1.83배입니다. 준공 13년, 3층, 역에서 490m 거리이며 신뢰도는 보통입니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>350/159</td>
+    </tr>
+    <tr>
+      <td>4396</td>
+      <td>강서구</td>
+      <td>3.95</td>
+      <td>2.76</td>
+      <td>0.37</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 122건의 ㎡당 중앙값 689만원 기준(2.33억) 대비 +19%, 공시가격(1.76억)의 1.57배. 준공 10년·3층·역 660m. 신뢰도 낮음(모델 간 예측 차이 큼).</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 이뤄진 거래 122건의 ㎡당 중앙값 689만 원을 기준으로 하면 약 2.33억 원이며, 이는 기준가보다 +19% 높습니다. 공시가격 1.76억 원의 1.57배입니다. 준공 10년, 3층, 역에서 660m 거리입니다. 모델별 예측 차이가 커서 신뢰도는 낮습니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>365/171</td>
+    </tr>
+    <tr>
+      <td>4679</td>
+      <td>강서구</td>
+      <td>2.15</td>
+      <td>1.48</td>
+      <td>0.49</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 227건의 ㎡당 중앙값 434만원 기준(1.67억) 대비 -12%, 공시가격(0.87억)의 1.71배. 준공 24년·4층·역 1090m. 신뢰도 보통.</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 거래된 빌라 227건의 ㎡당 중앙값은 434만원이며, 이를 기준으로 한 시세는 1.67억원입니다. 이는 공시가격 0.87억원의 1.71배이고, 기준 대비 -12%입니다. 준공 24년, 4층, 역까지 1090m이며 신뢰도는 보통입니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>351/154</td>
+    </tr>
+    <tr>
+      <td>10272</td>
+      <td>관악구</td>
+      <td>3.20</td>
+      <td>2.98</td>
+      <td>0.42</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 102건의 ㎡당 중앙값 739만원 기준(2.09억) 대비 +43%, 공시가격(2.11억)의 1.41배. 준공 6년·3층·역 390m. 신뢰도 낮음(모델 간 예측 차이 큼).</td>
+      <td>반경 500m 안의 최근 12개월 다른 지번 거래 102건을 보면 ㎡당 중앙값은 739만원이고, 이를 기준으로 한 시세는 2.09억원입니다. 이는 기준 대비 +43%이며, 공시가격 2.11억원의 1.41배입니다. 준공 6년, 3층, 역에서 390m 거리입니다. 모델 간 예측 차이가 커서 신뢰도는 낮습니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>365/167</td>
+    </tr>
+    <tr>
+      <td>10985</td>
+      <td>관악구</td>
+      <td>2.75</td>
+      <td>2.76</td>
+      <td>0.40</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 118건의 ㎡당 중앙값 617만원 기준(1.77억) 대비 +57%, 공시가격(1.69억)의 1.64배. 준공 10년·4층·역 460m. 신뢰도 낮음(모델 간 예측 차이 큼).</td>
+      <td>반경 500m 안에서 최근 12개월간 다른 지번에서 이뤄진 거래 118건의 ㎡당 중앙값은 617만 원이며, 이를 기준으로 한 시세는 약 1.77억 원입니다. 이는 +57% 차이가 나고, 공시가격 1.69억 원의 1.64배입니다. 준공 10년, 4층, 역까지 460m 거리입니다. 모델 간 예측 차이가 커서 신뢰도는 낮습니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>365/178</td>
+    </tr>
+    <tr>
+      <td>6168</td>
+      <td>강남구</td>
+      <td>12.00</td>
+      <td>8.88</td>
+      <td>0.24</td>
+      <td>반경 500m 최근 12개월 거래가 없어 넓힌 범위의 ㎡당 중앙값 947만원 기준(5.64억) 대비 +57%, 공시가격(6.79억)의 1.31배. 준공 12년·4층·역 1570m. 신뢰도 낮음(주변 거래 적음).</td>
+      <td>반경 500m 안에서는 최근 12개월 거래가 없어 범위를 넓혀 보았고, 그 기준 ㎡당 중앙값 947만원으로 산출한 5.64억원은 이 매물의 가격이 +57% 차이 난다는 뜻입니다. 공시가격 6.79억원의 1.31배이며, 준공 12년·4층·역 1570m 조건이고, 주변 거래가 적어 신뢰도는 낮습니다.</td>
+      <td>Haiku</td>
+      <td>—</td>
+      <td>364/167</td>
+    </tr>
+    <tr>
+      <td>9660</td>
+      <td>관악구</td>
+      <td>3.63</td>
+      <td>3.00</td>
+      <td>0.42</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 55건의 ㎡당 중앙값 886만원 기준(2.62억) 대비 +14%, 공시가격 정보 없음. 준공 1년 미만·4층·역 550m. 신뢰도 낮음.</td>
+      <td>반경 500m 최근 12개월 다른 지번 거래 55건의 ㎡당 중앙값 886만원 기준(2.62억) 대비 +14%, 공시가격 정보 없음. 준공 1년 미만·4층·역 550m. 신뢰도 낮음.</td>
+      <td>템플릿</td>
+      <td>숫자 불일치</td>
+      <td>348/143</td>
+    </tr>
+  </tbody>
+</table></div></section>
+</div></body></html>

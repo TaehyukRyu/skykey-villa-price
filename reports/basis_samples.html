@@ -1,0 +1,119 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>basis 시험</title><style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d1f;--muted:#6b6b70;--line:#e3e3e0;--accent:#00798c;--soft:#eef6f7;--warn:#fff6e5}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161618;--card:#1f1f22;--ink:#ececec;--muted:#a0a0a8;--line:#333338;--accent:#4fb3c4;--soft:#1d2a2d;--warn:#2d2718}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 "Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 80px}
+header h1{margin:0 0 4px;font-size:26px} header p{margin:0;color:var(--muted)}
+nav{position:sticky;top:0;background:var(--bg);padding:10px 0;margin:16px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 14px;z-index:5}
+nav a{color:var(--accent);text-decoration:none;font-size:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:18px 0}
+h2{margin:0 0 12px;font-size:20px} h3{margin:26px 0 8px;font-size:17px} h4{margin:18px 0 6px}
+.tw{overflow-x:auto;margin:10px 0} table{border-collapse:collapse;font-size:13px;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top} th{background:var(--soft);white-space:nowrap}
+img{max-width:100%;height:auto;display:block;margin:10px 0;border-radius:6px;background:#fff}
+.muted{color:var(--muted);font-size:13px} .why{background:var(--soft);padding:8px 12px;border-radius:6px;font-size:14px}
+.callout{background:var(--warn);padding:10px 14px;border-radius:6px} code{font-size:12.5px;background:var(--soft);padding:1px 4px;border-radius:3px}
+.ok{color:#2e7d32;font-weight:bold} .mid{color:#b7791f;font-weight:bold} .bad{color:#c62828;font-weight:bold}
+</style></head><body><div class="wrap">
+<header><h1>basis 문장 시험 (학습용 최근 12개월 10건)</h1>
+<p>템플릿 (API 호출 없음) — predict.py가 쓰는 방식 · 생성 2026-10-13 · <code>python src/basis.py</code></p></header>
+<section><h2>규칙</h2><ul>
+<li>숫자는 모두 모델·데이터 값 그대로. 주어(추정)와 기준가 계산식(㎡당 중앙값 × 전용면적)을 문장에 넣어 숫자마다 무엇을 가리키는지 분명히 함</li><li>주변 기준가 (사용자 결정): 반경 500m·최근 12개월·다른 지번 중 비슷한 면적(전용 ±20%) 거래의 ㎡당 중앙값 × 면적. 3건 미만이면 면적 구분 없는 주변 거래</li>
+<li>신뢰도 이유 (AI가 정한 세부 규칙): 높음은 이유 없음. 보통·낮음은 세 모델 예측 차이(%)를 항상 표시하고, 주변 거래 14건 이하면 "주변 거래 적음" 추가</li>
+<li>시험 대상: 권역별 강남 3·강서 3·관악 2건 + 주변 거래 0건 1건 + 공시가격 없음 1건 (난수 42). 추정 = 교차검증 예측(CatBoost). 시험용 데이터는 안 씀</li></ul></section>
+<section><h2>결과</h2><div class="tw"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>id</th>
+      <th>구</th>
+      <th>실제(억)</th>
+      <th>추정(억)</th>
+      <th>confidence</th>
+      <th>basis</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6785</td>
+      <td>강남구</td>
+      <td>4.40</td>
+      <td>3.79</td>
+      <td>0.52</td>
+      <td>추정 3.79억: 주변 기준가 4.20억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 53건의 ㎡당 중앙값 1,469만원 × 전용 28.56㎡)보다 -10%, 공시가격 2.19억의 1.73배. 준공 6년·3층·역 320m. 신뢰도 높음.</td>
+    </tr>
+    <tr>
+      <td>6187</td>
+      <td>강남구</td>
+      <td>5.21</td>
+      <td>5.87</td>
+      <td>0.51</td>
+      <td>추정 5.87억: 주변 기준가 4.20억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 25건의 ㎡당 중앙값 1,114만원 × 전용 37.71㎡)보다 +40%, 공시가격 2.09억의 2.80배. 준공 35년·2층·역 1,430m. 신뢰도 높음.</td>
+    </tr>
+    <tr>
+      <td>6914</td>
+      <td>강남구</td>
+      <td>4.00</td>
+      <td>3.76</td>
+      <td>0.41</td>
+      <td>추정 3.76억: 주변 기준가 5.56억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 31건의 ㎡당 중앙값 1,934만원 × 전용 28.74㎡)보다 -32%, 공시가격 1.34억의 2.81배. 준공 29년·4층·역 770m. 신뢰도 낮음(세 모델 예측 차이 10.7%).</td>
+    </tr>
+    <tr>
+      <td>3319</td>
+      <td>강서구</td>
+      <td>3.90</td>
+      <td>2.95</td>
+      <td>0.45</td>
+      <td>추정 2.95억: 주변 기준가 2.32억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 56건의 ㎡당 중앙값 539만원 × 전용 43.16㎡)보다 +27%, 공시가격 1.61억의 1.83배. 준공 13년·3층·역 490m. 신뢰도 보통(세 모델 예측 차이 4.9%).</td>
+    </tr>
+    <tr>
+      <td>4396</td>
+      <td>강서구</td>
+      <td>3.95</td>
+      <td>2.76</td>
+      <td>0.37</td>
+      <td>추정 2.76억: 주변 기준가 2.52억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 65건의 ㎡당 중앙값 747만원 × 전용 33.78㎡)보다 +9%, 공시가격 1.76억의 1.57배. 준공 10년·3층·역 660m. 신뢰도 낮음(세 모델 예측 차이 9.7%).</td>
+    </tr>
+    <tr>
+      <td>4679</td>
+      <td>강서구</td>
+      <td>2.15</td>
+      <td>1.48</td>
+      <td>0.49</td>
+      <td>추정 1.48억: 주변 기준가 1.74억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 63건의 ㎡당 중앙값 450만원 × 전용 38.56㎡)보다 -15%, 공시가격 0.87억의 1.71배. 준공 24년·4층·역 1,090m. 신뢰도 보통(세 모델 예측 차이 3.3%).</td>
+    </tr>
+    <tr>
+      <td>10272</td>
+      <td>관악구</td>
+      <td>3.20</td>
+      <td>2.98</td>
+      <td>0.42</td>
+      <td>추정 2.98억: 주변 기준가 3.00억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 17건의 ㎡당 중앙값 1,063만원 × 전용 28.24㎡)보다 -1%, 공시가격 2.11억의 1.41배. 준공 6년·3층·역 390m. 신뢰도 낮음(세 모델 예측 차이 10.0%).</td>
+    </tr>
+    <tr>
+      <td>10985</td>
+      <td>관악구</td>
+      <td>2.75</td>
+      <td>2.76</td>
+      <td>0.40</td>
+      <td>추정 2.76억: 주변 기준가 2.20억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 31건의 ㎡당 중앙값 768만원 × 전용 28.63㎡)보다 +26%, 공시가격 1.69억의 1.64배. 준공 10년·4층·역 460m. 신뢰도 낮음(세 모델 예측 차이 12.4%).</td>
+    </tr>
+    <tr>
+      <td>6168</td>
+      <td>강남구</td>
+      <td>12.00</td>
+      <td>8.88</td>
+      <td>0.24</td>
+      <td>추정 8.88억: 주변 기준가 5.64억(반경 500m 거래가 없어 넓힌 범위의 ㎡당 중앙값 947만원 × 전용 59.62㎡)보다 +57%, 공시가격 6.79억의 1.31배. 준공 12년·4층·역 1,570m. 신뢰도 낮음(주변 거래 적음, 세 모델 예측 차이 6.4%).</td>
+    </tr>
+    <tr>
+      <td>9660</td>
+      <td>관악구</td>
+      <td>3.63</td>
+      <td>3.00</td>
+      <td>0.42</td>
+      <td>추정 3.00억: 주변 기준가 2.86억(반경 500m·최근 12개월 비슷한 면적(±20%) 다른 지번 30건의 ㎡당 중앙값 965만원 × 전용 29.62㎡)보다 +5%, 공시가격 정보 없음. 준공 1년 미만·4층·역 550m. 신뢰도 낮음(세 모델 예측 차이 7.5%).</td>
+    </tr>
+  </tbody>
+</table></div></section>
+</div></body></html>

@@ -1,0 +1,14 @@
+# Python 3.13.7에서 확인한 버전 (predict.py와 재현 스크립트 전체)
+pandas==3.0.3
+numpy==2.3.5
+scikit-learn==1.7.2
+catboost==1.2.10
+xgboost==3.4.1
+lightgbm==4.7.0
+requests==2.32.5
+python-dotenv==1.2.2
+matplotlib==3.10.9   # 리포트 그림 (predict.py가 쓰는 tune_models.py가 import)
+optuna==5.0.0        # 튜닝 (predict.py가 쓰는 tune_models.py가 import)
+statsmodels==0.15.0  # 6단계 신뢰도 규칙 다시 만들 때 (src/uncertainty.py)
+defusedxml==0.7.1    # 실거래 다시 수집할 때 (src/collect_trades.py, XML을 안전하게 읽음)
+# anthropic==1.13.0  # 선택: basis를 Claude Haiku로 다듬는 재시험(python src/basis.py haiku)에만. predict.py는 필요 없음
