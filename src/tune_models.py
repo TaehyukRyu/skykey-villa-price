@@ -6,10 +6,12 @@
 목표: 교차검증 MAPE(원 단위) 최소화. 첫 시도는 기본 설정으로 시작(튜닝 결과가 기본보다 나빠지지 않게)
 가지치기: 조각을 하나씩 끝낼 때마다 그때까지의 MAPE가 다른 시도들의 중간값보다 나쁘면 그 시도를 중단
 주의: 튜닝과 평가에 같은 조각을 쓰므로 점수가 약간 좋게 나옴 → 최종 성능은 9단계 시험용으로 확인
-이어 하기: 시도 기록을 reports/optuna.db에 저장 → 중간에 멈춰도 다시 실행하면 멈춘 곳부터 이어서 진행 (10/13 메모리 부족 중단 뒤 추가)
+이어 하기: 시도 기록을 reports/optuna_v2.db에 저장 → 중간에 멈춰도 다시 실행하면 멈춘 곳부터 이어서 진행 (10/13 메모리 부족 중단 뒤 추가)
+v2 (10/14, 결정기록.md 19번): 트리 입력에 위경도·같은 건물 과거 시세 추가 → 트리 3개만 새로 튜닝. ElasticNet·MLP는 입력이 그대로라
+  제출본 기록(reports/optuna.db)의 시도를 optuna_v2.db로 복사해 씀 (다시 돌리지 않음)
 학습 곡선 (리포트 6번, 10/13 사용자 요청): 튜닝된 설정으로 5조각을 다시 학습하며 학습·검증 MAPE 기록 → 과소·과대적합 확인
 출력: reports/best_params.json, reports/tuning_results.csv, reports/tuning_trials.csv(모든 시도 기록), reports/tuning_report.html
-실행: python src/tune_models.py            (본 실행, reports/optuna.db)
+실행: python src/tune_models.py            (본 실행, reports/optuna_v2.db)
       python src/tune_models.py 2          (시험: 모든 모델 2회씩, reports/optuna_test.db)
 """
 import base64
@@ -45,7 +47,7 @@ RECENT = "2025-10-01"
 ORDER = ["ElasticNet", "LightGBM", "XGBoost", "MLP", "CatBoost"]
 N_ALL = int(sys.argv[1]) if __name__ == "__main__" and len(sys.argv) > 1 else None  # 숫자를 주면 시험 실행 (모든 모델 같은 횟수, 별도 기록 파일). 직접 실행할 때만 읽음 — predict.py가 import할 때 --input을 숫자로 읽지 않게
 N_TRIALS = {n: N_ALL or (30 if n == "MLP" else 50) for n in ORDER}  # MLP는 가장 느려서 30회 (10/13 사용자 결정 B)
-STORAGE = f"sqlite:///{(REPORT / ('optuna_test.db' if N_ALL else 'optuna.db')).as_posix()}"
+STORAGE = f"sqlite:///{(REPORT / ('optuna_test.db' if N_ALL else 'optuna_v2.db')).as_posix()}"
 FINISHED = (optuna.trial.TrialState.COMPLETE, optuna.trial.TrialState.PRUNED)
 COLOR = {"ElasticNet": "#66b2c2", "LightGBM": "#d1495b", "XGBoost": "#edae49", "MLP": "#2a9d8f", "CatBoost": "#8e6bbf"}
 plt.rcParams.update({"font.family": "Malgun Gothic", "axes.unicode_minus": False, "figure.dpi": 110,
@@ -70,6 +72,10 @@ SPACE_DOC = {
     "CatBoost": [("iterations", "나무 개수", "300~1,500"), ("depth", "나무 깊이", "4~8"),
                  ("learning_rate", "한 번에 고치는 정도", "0.01~0.3 (로그 간격)"), ("l2_leaf_reg", "규제 세기", "1~10 (로그 간격)"),
                  ("bagging_temperature", "행을 무작위로 섞는 정도", "0~1")],
+}
+PREV = {  # v2: 제출본 튜닝 설정을 시도 1회로 추가 (10/14 사용자 결정) — 새 변수에서 이 설정이 50회 튜닝 최고값보다 0.03%p 나았음
+    "CatBoost": {"iterations": 1369, "depth": 7, "learning_rate": 0.028821719013949317, "l2_leaf_reg": 1.2098582641555387,
+                 "bagging_temperature": 0.9071839407223139},
 }
 DEFAULTS = {  # 첫 시도 = 각 라이브러리 기본값 (범위 안으로 맞춤)
     "ElasticNet": {"alpha": 0.000684, "l1_ratio": 0.5},  # 5단계 ElasticNetCV가 학습용 전체에서 고른 값
@@ -289,6 +295,9 @@ if __name__ == "__main__":
         if not study.trials:
             study.enqueue_trial(DEFAULTS[name])  # 첫 시도는 기본 설정
         left = N_TRIALS[name] - sum(t.state in FINISHED for t in study.trials)
+        if name in PREV and not any(t.params == PREV[name] and t.state == optuna.trial.TrialState.COMPLETE for t in study.trials):  # 제출본 설정을 시도 1회 추가 (횟수에 더함)
+            study.enqueue_trial(PREV[name])
+            left = max(left, 0) + 1
 
         def log(st, tr, name=name):
             state = "중단" if tr.state == optuna.trial.TrialState.PRUNED else f"MAPE {tr.value:.2f}%"
@@ -297,7 +306,11 @@ if __name__ == "__main__":
 
         if left > 0:
             print(f"{name}: {N_TRIALS[name] - left}회는 지난 기록에서 불러옴, {left}회 진행", flush=True)
-            study.optimize(lambda tr: mape(y, cv_oof(name, suggest(tr, name), tr)), n_trials=left, callbacks=[log])
+            def objective(tr, name=name):  # 제출본 설정 시도는 가지치기 없이 5조각 끝까지 (첫 실행에서 1조각 뒤 중단돼 비교가 안 됐음)
+                p = suggest(tr, name)
+                return mape(y, cv_oof(name, p, None if p == PREV.get(name) else tr))
+
+            study.optimize(objective, n_trials=left, callbacks=[log])
         # 튜닝 전 = 진짜 기본 설정. CatBoost는 학습률을 라이브러리가 자동으로 정하므로 learning_rate를 빼고 계산 (5단계 값과 같아짐)
         default = {k: v for k, v in DEFAULTS[name].items() if not (name == "CatBoost" and k == "learning_rate")}
         # ElasticNet의 튜닝 전 = 5단계 방식(ElasticNetCV 자동 선택) → 17.23%와 같아야 함
@@ -401,7 +414,7 @@ if __name__ == "__main__":
 <section id="s1"><h2>1. 튜닝 방법</h2>{table(pd.DataFrame([
     ["도구", f"Optuna {optuna.__version__} — 베이지안 최적화(TPE): 앞선 시도 결과를 보고 좋아 보이는 설정값 쪽을 골라 다음 시도"],
     ["목표", "지번 단위 5조각 교차검증 MAPE(원 단위) 최소화 — 5단계 비교와 같은 조각·같은 지표"],
-    ["시도 횟수", f"{', '.join(f'{n} {v}회' for n, v in N_TRIALS.items())} (MLP는 가장 느려 줄임). 첫 시도는 기본 설정 → 튜닝 결과가 기본보다 나빠지지 않음. 기록은 reports/optuna.db에 저장돼 중단돼도 이어서 진행"],
+    ["시도 횟수", f"{', '.join(f'{n} {v}회' for n, v in N_TRIALS.items())} (MLP는 가장 느려 줄임). 첫 시도는 기본 설정 → 튜닝 결과가 기본보다 나빠지지 않음. 기록은 reports/optuna_v2.db에 저장돼 중단돼도 이어서 진행 (ElasticNet·MLP는 입력이 그대로라 제출본 기록 복사)"],
     ["가지치기", "조각 하나가 끝날 때마다 그때까지의 MAPE가 다른 시도들의 중간값보다 나쁘면 중단 (처음 5회는 끝까지). 중단된 시도: " + ", ".join(f"{n} {v}회" for n, v in n_pruned.items())],
     ["튜닝 대상", "ElasticNet, LightGBM, XGBoost, MLP, CatBoost. ElasticNet의 '기본 설정' = 5단계 ElasticNetCV 자동 선택(지번 구분 없는 내부 교차검증) → 지번 단위 조각으로 다시 튜닝"],
     ["튜닝 안 함", "OLS(설정값 없음), TabPFN(CPU에서 너무 느려 제외)"],

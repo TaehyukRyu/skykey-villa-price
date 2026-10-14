@@ -2,9 +2,12 @@
 
 서울 **강남구·관악구·강서구 화곡동** 다세대주택의 지번·층·호를 넣으면 시세, 범위, 신뢰도, 근거 한 줄이 나옵니다. (스카이키 과제, 연립 제외)
 
-| 시험 표본 | 평균 오차율 (MAPE) | 중앙값 오차율 | 실제 가격이 범위 안 |
+> **v2 브랜치 = 제출 뒤 개선판.** 요인에 위치(위도·경도)와 같은 건물 비슷한 면적 과거 시세를 더하고 다시 튜닝했습니다. 제출본은 `main` 브랜치입니다. 무엇을 왜 바꿨는지는 `결정기록.md` 19번에 있습니다.
+
+| 시험 표본: 2,200건 (학습에 안 쓴 지번 20%) | 평균 오차율 (MAPE) | 중앙값 오차율 | 실제 가격이 범위 안 |
 |---|---|---|---|
-| 2,200건 (학습에 안 쓴 지번 20%) | **14.6%** | 9.8% | 83.2% |
+| **v2 (이 브랜치)** | **13.5%** | 9.4% | 82.3% |
+| 제출본 (`main`) | 14.6% | 9.8% | 83.2% |
 
 <img src="docs/img/actual_vs_pred.png" width="480" alt="시험용 2,200건 실제 거래가와 추정 시세 비교">
 
@@ -15,7 +18,7 @@ pip install -r requirements.txt
 python predict.py --input input.csv --output output.csv
 ```
 
-- 예시: `sample/input_sample.csv` → `sample/output_sample.csv` (21건 약 25초)
+- 예시: `sample/input_sample.csv` → `sample/output_sample.csv` (21건 약 30초)
 - 산출 기준일 기본값은 과제 안내일 2026-10-06 (`--base-date`로 변경)
 - 받아 둔 지번(5,317개)은 API 키 없이 동작. 처음 보는 지번만 키가 필요 (아래 "API 키")
 
@@ -23,7 +26,7 @@ python predict.py --input input.csv --output output.csv
 
 ```mermaid
 flowchart LR
-    A["입력<br>지번·층·호·면적"] --> B["요인 13개 계산<br>없는 지번은 API 조회"]
+    A["입력<br>지번·층·호·면적"] --> B["요인 16개 계산<br>없는 지번은 API 조회"]
     B --> C["시세 추정<br>CatBoost"]
     C --> D["신뢰도·범위<br>세 모델 의견 차이<br>주변 거래 수"]
     D --> E["근거 한 줄<br>비슷한 면적 거래 대비 %"]
@@ -31,6 +34,7 @@ flowchart LR
 ```
 
 - 요인: 주변 거래 ㎡당 가격, 거래 시점, 동, 역까지 거리, 노선 수, 전용면적, 층, 건물 나이, 세대수, 승강기, 세대당 주차, 구조, 공시가격 (고른 이유: `결정기록.md` 4·6번)
+  + v2: 위도, 경도, 같은 건물 비슷한 면적(±20%) 과거 거래 ㎡당 가격 (기준일 전 거래만, 트리 모델에만 사용. 고른 방법: `결정기록.md` 19번)
 - 신뢰도 = 실제 가격이 추정의 ±10% 안에 들 확률
 
 ## 성능
@@ -39,7 +43,8 @@ flowchart LR
 
 <img src="docs/img/region.png" width="480" alt="권역별 평균 오차율">
 
-- 시험용 숫자는 학습용 8,793건으로만 학습한 모델의 결과입니다. 제출한 모델은 그 뒤 시험용까지 합쳐 10,974건으로 다시 학습했습니다.
+- 시험용 숫자는 학습용 8,793건으로만 학습한 모델의 결과입니다. 실제 산출 모델은 그 뒤 시험용까지 합쳐 10,974건으로 다시 학습했습니다.
+- 회귀 모델(OLS·ElasticNet·MLP)은 v2 요인을 넣지 않아 제출본 결과 그대로입니다 (위경도는 직선 관계가 아니고, 같은 건물 시세는 빈칸이 남아 있음).
 - 자세한 결과: `reports/test_report.html`
 
 ## 사용 데이터
@@ -125,14 +130,14 @@ VWORLD_KEY=VWorld 인증키
 | 8 | `python src/eda.py` | 탐색 리포트 |
 | 9 | `python src/preprocess.py` | 전처리 + 빈칸 채움 값 + 재학습 제외 id |
 | 10 | `python src/compare_models.py` | 모델 7개 비교 |
-| 11 | `python src/tune_models.py` | 설정값 조정(Optuna) + 학습 곡선 |
+| 11 | `python src/tune_models.py` | 설정값 조정(Optuna, 기록 `reports/optuna_v2.db`) + 학습 곡선 |
 | 12 | `python src/select_model.py` | 최종 모델 선택 + 교차검증 예측 |
 | 13 | `python src/uncertainty.py` | 범위·신뢰도 규칙 |
 | 14 | `python src/basis.py` | 근거 문장 시험 |
 | 15 | `python predict.py --input data/processed/test_input.csv --output reports/test_output.csv --train-only` → `python src/evaluate.py` | 시험용 평가 (`--train-only` = 학습용만으로 학습) |
 | 16 | `python src/readme_figures.py` | README 그림 |
 
-- 실행할 때마다 모델 3개를 새로 학습합니다(약 10초). 설정과 난수가 고정돼 있어 매번 같은 결과가 나옵니다.
+- 실행할 때마다 모델 3개를 새로 학습합니다(약 15초). 설정과 난수가 고정돼 있어 매번 같은 결과가 나옵니다.
 - 학습 데이터 10,974건 = 학습용 8,793 + 시험용 2,181 (시험용 중 학습용과 같은 이상치 규칙에 걸린 19건 제외)
 
 </details>

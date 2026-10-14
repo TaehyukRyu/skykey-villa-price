@@ -5,7 +5,7 @@ preprocessed_all.csv(원래 단위)를 받아, 모델에 맞게 변환·인코�
 R의 recipes(step_log → step_dummy)와 같은 역할.
 
 - regression_prep(): 선형회귀용. log 4개 적용, 나머지 수치형 그대로, 동·구조 원핫(기준 범주 1개 뺌), 구 제외
-- tree_prep(): 트리 계열용. 수치형 그대로, 동·구조 라벨 인코딩, 구 제외
+- tree_prep(): 트리 계열용. 수치형 그대로(+ 위경도·같은 건물 과거 시세), 동·구조 라벨 인코딩, 구 제외
 - log_target(): 타깃(거래가)을 log로 학습하고 예측은 exp로 원 단위로 되돌림 (회귀·트리 공통)
 """
 import numpy as np
@@ -18,6 +18,9 @@ NUM = ["area_m2", "floor", "building_age", "station_dist_m", "n_lines_500m", "pu
 # log 근거: 변환 전 왜도 1 이상인 연속값 → 변환 후 왜도가 0 쪽으로 줄어드는 것 확인 (결정기록.md 10번)
 LOG_COLS = ["pub_ppm", "hhld_cnt", "parking_per_hh", "nb_ppm_500m"]
 FLAGS = ["pub_ppm_missing", "hhld_cnt_missing", "parking_per_hh_missing"]
+# 트리 모델에만 넣는 칸 (결정기록.md 19번): 위경도는 직선 관계가 아니라 회귀에 그대로 넣을 수 없고,
+# 같은 건물 과거 시세는 빈칸(과거 거래 없음)이 그대로 남아 있어 트리만 처리 가능
+TREE_EXTRA = ["lat", "lon", "sb_sim"]
 CAT = ["dong", "structure"]  # 구는 동과 완전히 겹쳐 모델 입력에서 뺌 (파일에는 남김)
 BASE = [["화곡동"], ["철근콘크리트구조"]]  # 원핫 기준 범주 = 학습용에서 건수가 가장 많은 범주. 예측엔 영향 없고 계수 해석 기준
 STRUCT_GROUP = {"철골콘크리트구조": "철골", "경량철골구조": "철골"}  # 소수 범주(8건·1건) 묶기
@@ -49,7 +52,7 @@ def regression_prep(log_cols=LOG_COLS, scale=False):
 def tree_prep():
     """트리 계열은 값의 순서만 보므로 log·스케일링이 결과를 바꾸지 않음 → 수치형 그대로. 범주는 번호로(라벨 인코딩)"""
     return ColumnTransformer([
-        ("num", "passthrough", NUM),
+        ("num", "passthrough", NUM + TREE_EXTRA),
         ("cat", _cat(OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)), CAT),  # 모르는 동 → -1
         ("flag", "passthrough", FLAGS),
     ], verbose_feature_names_out=False)

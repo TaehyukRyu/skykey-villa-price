@@ -4,7 +4,7 @@
   - 학습: 기준일 = 실제 거래일 (그 거래 시점에 알 수 있던 정보만 쓰기 위해)
   - 예측: 기준일 = 산출 기준일
   - 공시가격도 기준일에 이미 공개돼 있던 연도 값만 씀 (2026 값을 2025년 거래에 붙이면 미래 정보 = 시점 누수)
-후보 선정 근거(감정평가 거래사례비교법의 요인)는 결정기록.md 4번
+후보 선정 근거(감정평가 거래사례비교법의 요인)는 결정기록.md 4번. 같은 건물 과거 시세(sb_sim)는 제출 뒤 추가 (19번)
 실행: python src/features.py → data/processed/features_all.csv (EDA용, 정답 가격 포함)
 """
 from pathlib import Path
@@ -136,6 +136,26 @@ def make_features(rows, ref_dates, src=None):
 
     my_key = (df.gu + "|" + df.umdNm + "|" + df.jibun).to_numpy()
     out["nb_ppm_500m"], out["nb_cnt_500m"] = nearby(my_key, geo.lat.to_numpy(), geo.lon.to_numpy(), ref.to_numpy(), src)
+    out["sb_sim"] = same_building(my_key, area.to_numpy(), ref.to_numpy(), src)
+    return out
+
+
+def same_building(my_key, area, ref, src, tol=0.2):
+    """같은 건물(지번) 비슷한 면적(전용 ±20%) 과거 거래의 ㎡당 가격 중앙값. 기준일 전 거래만 (같은 날 거래 제외)
+    그 호 자신의 과거 거래도 포함 (기준일 전에 공개된 실거래, 10/14 사용자 결정). 과거 거래가 없으면 빈칸 → 트리 모델이 빈칸 자체를 신호로 씀
+    nearby()가 같은 건물을 빼는 것과 따로 둔 칸 — 빼지 않고 넣으니 교차검증 MAPE 13.89 → 13.42% (위경도 포함 기준, 결정기록.md 19번)"""
+    pool = src["pool"]
+    pk = (pool.gu + "|" + pool.umdNm + "|" + pool.jibun).to_numpy()
+    pl_date, pl_ppm, pl_area = pool.date.to_numpy(), pool.ppm.to_numpy(), pool.area_m2.astype(float).to_numpy()
+    groups = pd.Series(np.arange(len(pool))).groupby(pk).apply(np.array).to_dict()  # 지번 → 그 지번 거래 행 번호
+    out = np.full(len(my_key), np.nan)
+    for i, k in enumerate(my_key):
+        js = groups.get(k)
+        if js is None:
+            continue
+        js = js[(pl_date[js] < ref[i]) & (pl_area[js] >= area[i] * (1 - tol)) & (pl_area[js] <= area[i] * (1 + tol))]
+        if len(js):
+            out[i] = np.median(pl_ppm[js])
     return out
 
 
